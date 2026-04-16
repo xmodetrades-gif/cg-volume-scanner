@@ -3,14 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#020617" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="CG Scanner" />
   <title>CoinGecko Volume Scanner</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link id="dynamic-manifest" rel="manifest" />
 </head>
 <body class="bg-slate-950 text-white min-h-screen">
   <div class="max-w-7xl mx-auto px-4 py-6">
     <div class="mb-6">
-      <h1 class="text-3xl font-bold">CoinGecko Volume Scanner</h1>
-      <p class="text-slate-400 mt-2">Lista token aggiornata + dettaglio storico con market cap, volume e close quando selezioni una coin.</p>
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-bold">CoinGecko Volume Scanner</h1>
+          <p class="text-slate-400 mt-2">Lista token aggiornata + dettaglio storico con market cap, volume e close quando selezioni una coin.</p>
+        </div>
+        <button id="installBtn" class="hidden bg-fuchsia-600 hover:bg-fuchsia-500 rounded-xl px-4 py-3 font-semibold">Installa app</button>
+      </div>
+      <div id="installStatus" class="text-slate-500 text-sm mt-3"></div>
     </div>
 
     <div class="grid lg:grid-cols-12 gap-6">
@@ -89,6 +100,7 @@
 
   <script>
     const API = 'https://api.coingecko.com/api/v3';
+    let deferredPrompt = null;
     let allTokens = [];
     let page = 1;
     let currentSort = 'volume_desc';
@@ -106,10 +118,82 @@
     const daysSelectEl = document.getElementById('daysSelect');
     const refreshBtnEl = document.getElementById('refreshBtn');
     const loadMoreBtnEl = document.getElementById('loadMoreBtn');
+    const installBtnEl = document.getElementById('installBtn');
+    const installStatusEl = document.getElementById('installStatus');
     const minMcapEl = document.getElementById('minMcap');
     const maxMcapEl = document.getElementById('maxMcap');
     const showAllBtnEl = document.getElementById('showAllBtn');
     const showFavBtnEl = document.getElementById('showFavBtn');
+
+    function setupPWA() {
+      const manifest = {
+        name: 'CoinGecko Volume Scanner',
+        short_name: 'CG Scanner',
+        start_url: '.',
+        display: 'standalone',
+        background_color: '#020617',
+        theme_color: '#020617',
+        icons: [
+          {
+            src: 'data:image/svg+xml;base64,' + btoa(`
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                <rect width="512" height="512" rx="110" fill="#020617"/>
+                <circle cx="170" cy="170" r="64" fill="#10b981"/>
+                <circle cx="342" cy="170" r="64" fill="#f59e0b"/>
+                <rect x="92" y="262" width="328" height="52" rx="26" fill="#2563eb"/>
+                <rect x="92" y="340" width="252" height="52" rx="26" fill="#a855f7"/>
+              </svg>
+            `),
+            sizes: '512x512',
+            type: 'image/svg+xml',
+            purpose: 'any maskable'
+          }
+        ]
+      };
+
+      const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+      const manifestUrl = URL.createObjectURL(manifestBlob);
+      document.getElementById('dynamic-manifest').setAttribute('href', manifestUrl);
+
+      if ('serviceWorker' in navigator) {
+        const swCode = `
+          const CACHE_NAME = 'cg-scanner-v1';
+          const APP_SHELL = ['./'];
+          self.addEventListener('install', event => {
+            event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
+          });
+          self.addEventListener('activate', event => {
+            event.waitUntil(self.clients.claim());
+          });
+          self.addEventListener('fetch', event => {
+            if (event.request.method !== 'GET') return;
+            event.respondWith(
+              fetch(event.request).then(response => {
+                const clone = response.clone();
+                caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone)).catch(() => {});
+                return response;
+              }).catch(() => caches.match(event.request).then(resp => resp || caches.match('./')))
+            );
+          });
+        `;
+        const swBlob = new Blob([swCode], { type: 'text/javascript' });
+        const swUrl = URL.createObjectURL(swBlob);
+        navigator.serviceWorker.register(swUrl).catch(() => {});
+      }
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtnEl.classList.remove('hidden');
+        installStatusEl.textContent = 'Puoi installare questa web app sulla home del telefono o del computer.';
+      });
+
+      window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        installBtnEl.classList.add('hidden');
+        installStatusEl.textContent = 'App installata correttamente.';
+      });
+    }
 
     function formatCurrency(value) {
       if (value === null || value === undefined || Number.isNaN(value)) return 'N/A';
@@ -228,6 +312,98 @@
       }
     }
 
+    async function fetchJsonWithRetry(url, options = {}) {
+      const { retries = 1, retryDelay = 1200 } = options;
+      let lastError = null;
+
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+          const response = await fetch(url);
+
+          if (response.status === 429) {
+            throw new Error('RATE_LIMIT');
+          }
+
+          if (!response.ok) {
+            throw new Error(`HTTP_${response.status}`);
+          }
+
+          return await response.json();
+        } catch (error) {
+          lastError = error;
+          if (attempt < retries) {
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+          }
+        }
+      }
+
+      throw lastError;
+    }
+
+    function getHistoryCacheKey(coinId, days) {
+      return `cg_history_${coinId}_${days}`;
+    }
+
+    function saveHistoryToCache(coinId, days, data) {
+      const payload = {
+        savedAt: Date.now(),
+        data
+      };
+      localStorage.setItem(getHistoryCacheKey(coinId, days), JSON.stringify(payload));
+    }
+
+    function loadHistoryFromCache(coinId, days, maxAgeMs = 1000 * 60 * 30) {
+      try {
+        const raw = localStorage.getItem(getHistoryCacheKey(coinId, days));
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed?.savedAt || !parsed?.data) return null;
+        if (Date.now() - parsed.savedAt > maxAgeMs) return null;
+        return parsed.data;
+      } catch {
+        return null;
+      }
+    }
+
+    function buildDailyRowsFromChartData(chartData) {
+      const prices = Array.isArray(chartData?.prices) ? chartData.prices : [];
+      const marketCaps = Array.isArray(chartData?.market_caps) ? chartData.market_caps : [];
+      const volumes = Array.isArray(chartData?.total_volumes) ? chartData.total_volumes : [];
+
+      if (!prices.length) {
+        return [];
+      }
+
+      const rows = prices.map((pricePoint, index) => {
+        const timestamp = pricePoint[0];
+        const close = pricePoint[1];
+        const mcap = marketCaps[index] ? marketCaps[index][1] : null;
+        const vol = volumes[index] ? volumes[index][1] : null;
+        return { timestamp, close, marketCap: mcap, volume: vol };
+      });
+
+      const dailyMap = new Map();
+      rows.forEach(row => {
+        const date = new Date(row.timestamp).toISOString().slice(0, 10);
+        dailyMap.set(date, row);
+      });
+
+      return Array.from(dailyMap.entries())
+        .map(([date, values]) => ({ date, ...values }))
+        .sort((a, b) => b.timestamp - a.timestamp);
+    }
+
+    function renderHistoryRows(dailyRows) {
+      historyTableBodyEl.innerHTML = dailyRows.map((row, idx) => `
+        <tr class="${idx % 2 === 0 ? 'bg-slate-900' : 'bg-slate-950'} border-t border-slate-800">
+          <td class="px-4 py-3">${row.date}</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(row.marketCap)}</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(row.volume)}</td>
+          <td class="px-4 py-3 text-right">${formatPrice(row.close)}</td>
+        </tr>
+      `).join('');
+    }
+
     async function loadCoinHistory(coinId) {
       selectedCoinId = coinId;
       renderTokenList();
@@ -236,10 +412,8 @@
 
       try {
         const days = daysSelectEl.value;
-        const marketRes = await fetch(`${API}/coins/markets?vs_currency=usd&ids=${coinId}`);
-        if (!marketRes.ok) throw new Error('Errore dati coin');
-        const marketData = await marketRes.json();
-        if (!marketData.length) throw new Error('Token non trovato');
+        const marketData = await fetchJsonWithRetry(`${API}/coins/markets?vs_currency=usd&ids=${coinId}`, { retries: 1, retryDelay: 900 });
+        if (!marketData.length) throw new Error('TOKEN_NOT_FOUND');
         const coin = marketData[0];
 
         selectedHeaderEl.innerHTML = `
@@ -274,50 +448,69 @@
           </div>
         `;
 
-        const chartRes = await fetch(`${API}/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`);
-        if (!chartRes.ok) throw new Error('Errore storico');
-        const chartData = await chartRes.json();
+        let chartData = null;
+        let loadedFromCache = false;
 
-        const prices = chartData.prices || [];
-        const marketCaps = chartData.market_caps || [];
-        const volumes = chartData.total_volumes || [];
+        try {
+          chartData = await fetchJsonWithRetry(`${API}/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`, { retries: 1, retryDelay: 1500 });
+          saveHistoryToCache(coinId, days, chartData);
+        } catch (error) {
+          const cached = loadHistoryFromCache(coinId, days);
+          if (cached) {
+            chartData = cached;
+            loadedFromCache = true;
+          } else {
+            throw error;
+          }
+        }
 
-        const rows = prices.map((pricePoint, index) => {
-          const timestamp = pricePoint[0];
-          const close = pricePoint[1];
-          const mcap = marketCaps[index] ? marketCaps[index][1] : null;
-          const vol = volumes[index] ? volumes[index][1] : null;
-          return { timestamp, close, marketCap: mcap, volume: vol };
-        });
+        const dailyRows = buildDailyRowsFromChartData(chartData);
 
-        const dailyMap = new Map();
-        rows.forEach(row => {
-          const date = new Date(row.timestamp).toISOString().slice(0, 10);
-          dailyMap.set(date, row);
-        });
+        if (!dailyRows.length) {
+          throw new Error('NO_HISTORY');
+        }
 
-        const dailyRows = Array.from(dailyMap.entries())
-          .map(([date, values]) => ({ date, ...values }))
-          .sort((a, b) => b.timestamp - a.timestamp);
-
-        historyTableBodyEl.innerHTML = dailyRows.map((row, idx) => `
-          <tr class="${idx % 2 === 0 ? 'bg-slate-900' : 'bg-slate-950'} border-t border-slate-800">
-            <td class="px-4 py-3">${row.date}</td>
-            <td class="px-4 py-3 text-right">${formatCurrency(row.marketCap)}</td>
-            <td class="px-4 py-3 text-right">${formatCurrency(row.volume)}</td>
-            <td class="px-4 py-3 text-right">${formatPrice(row.close)}</td>
-          </tr>
-        `).join('');
-
-        tableStatusEl.textContent = `${dailyRows.length} righe storiche`;
+        renderHistoryRows(dailyRows);
+        tableStatusEl.textContent = loadedFromCache
+          ? `${dailyRows.length} righe storiche · cache locale`
+          : `${dailyRows.length} righe storiche`;
       } catch (error) {
-        tableStatusEl.textContent = 'Errore nel caricamento storico';
-        historyTableBodyEl.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-slate-400">Impossibile caricare lo storico per questa coin.</td></tr>`;
+        let message = 'Impossibile caricare lo storico per questa coin.';
+
+        if (error?.message === 'RATE_LIMIT') {
+          message = 'CoinGecko ha limitato temporaneamente le richieste. Attendi qualche secondo e riprova.';
+        } else if (error?.message === 'NO_HISTORY') {
+          message = 'Storico non disponibile o dati troppo recenti per questa coin.';
+        } else if (error?.message === 'TOKEN_NOT_FOUND') {
+          message = 'Token non trovato su CoinGecko.';
+        } else if (typeof error?.message === 'string' && error.message.startsWith('HTTP_')) {
+          message = `Errore API ${error.message.replace('HTTP_', '')}. Riprova tra poco.`;
+        }
+
+        tableStatusEl.textContent = 'Storico non disponibile';
+        historyTableBodyEl.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-slate-400">${message}</td></tr>`;
       }
     }
 
     refreshBtnEl.addEventListener('click', async () => {
-      await fetchMarkets(true);
+      await installBtnEl.addEventListener('click', async () => {
+      if (!deferredPrompt) {
+        installStatusEl.textContent = 'Apri il menu del browser e usa “Aggiungi a schermata Home” se il pulsante di installazione non compare.';
+        return;
+      }
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      if (choice.outcome === 'accepted') {
+        installStatusEl.textContent = 'Installazione avviata.';
+      } else {
+        installStatusEl.textContent = 'Installazione annullata.';
+      }
+      installBtnEl.classList.add('hidden');
+    });
+
+    setupPWA();
+    fetchMarkets(true);
     });
 
     loadMoreBtnEl.addEventListener('click', async () => {
