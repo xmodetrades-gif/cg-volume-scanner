@@ -7,85 +7,88 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="CG Scanner" />
-  <title>CoinGecko Volume Scanner</title>
+  <title>CoinGecko Token Scanner</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link id="dynamic-manifest" rel="manifest" />
 </head>
+
 <body class="bg-slate-950 text-white min-h-screen">
   <div class="max-w-7xl mx-auto px-4 py-6">
-    <div class="mb-6">
+    <header class="mb-6">
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 class="text-3xl font-bold">CoinGecko Volume Scanner</h1>
-          <p class="text-slate-400 mt-2">Lista token aggiornata + dettaglio storico con market cap, volume e close quando selezioni una coin.</p>
+          <h1 class="text-3xl font-bold tracking-tight">CoinGecko Token Scanner</h1>
+          <p class="text-slate-400 mt-2">
+            Market cap, FDV, supply, historical data, contracts, links social e storico volume/prezzo.
+          </p>
         </div>
-        <button id="installBtn" class="hidden bg-fuchsia-600 hover:bg-fuchsia-500 rounded-xl px-4 py-3 font-semibold">Installa app</button>
+
+        <button id="installBtn" class="hidden bg-fuchsia-600 hover:bg-fuchsia-500 rounded-xl px-4 py-3 font-semibold transition">
+          Installa app
+        </button>
       </div>
       <div id="installStatus" class="text-slate-500 text-sm mt-3"></div>
-    </div>
+    </header>
 
-    <div class="grid lg:grid-cols-12 gap-6">
-      <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-4">
+    <main class="grid lg:grid-cols-12 gap-6">
+      <aside class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 h-fit">
         <div class="flex flex-col gap-3">
-          <input id="searchInput" type="text" placeholder="Cerca token o simbolo..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 outline-none" />
+          <input id="searchInput" type="text" placeholder="Cerca token, simbolo o ID..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-emerald-500" />
+
           <div class="grid grid-cols-2 gap-3">
-            <select id="sortBy" class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-3">
+            <select id="sortBy" class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-emerald-500">
               <option value="volume_desc">Volume desc</option>
               <option value="market_cap_desc">Market cap desc</option>
               <option value="volume_asc">Volume asc</option>
               <option value="market_cap_asc">Market cap asc</option>
             </select>
-            <button id="refreshBtn" class="bg-emerald-600 hover:bg-emerald-500 rounded-xl px-4 py-3 font-semibold">Aggiorna lista</button>
+            <button id="refreshBtn" class="bg-emerald-600 hover:bg-emerald-500 rounded-xl px-4 py-3 font-semibold transition">Aggiorna lista</button>
           </div>
+
           <div class="grid grid-cols-2 gap-3">
-            <input id="minMcap" type="number" min="0" step="any" placeholder="Min market cap $" class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 outline-none" />
-            <input id="maxMcap" type="number" min="0" step="any" placeholder="Max market cap $" class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 outline-none" />
+            <input id="minMcap" type="number" min="0" step="any" placeholder="Min market cap $" class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-emerald-500" />
+            <input id="maxMcap" type="number" min="0" step="any" placeholder="Max market cap $" class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-emerald-500" />
           </div>
+
           <div class="grid grid-cols-2 gap-3">
-            <select id="daysSelect" class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-3">
+            <select id="daysSelect" class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-emerald-500">
               <option value="7">Storico 7g</option>
               <option value="14">Storico 14g</option>
               <option value="30" selected>Storico 30g</option>
               <option value="90">Storico 90g</option>
             </select>
-            <button id="loadMoreBtn" class="bg-blue-600 hover:bg-blue-500 rounded-xl px-4 py-3 font-semibold">Carica altri</button>
+            <button id="loadMoreBtn" class="bg-blue-600 hover:bg-blue-500 rounded-xl px-4 py-3 font-semibold transition">Carica altri</button>
           </div>
+
           <div class="grid grid-cols-2 gap-3">
-            <button id="showAllBtn" class="bg-slate-800 hover:bg-slate-700 rounded-xl px-4 py-3 font-semibold">Tutti</button>
-            <button id="showFavBtn" class="bg-amber-600 hover:bg-amber-500 rounded-xl px-4 py-3 font-semibold">Preferiti</button>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <select id="daysSelect" class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-3">
-              <option value="7">Storico 7g</option>
-              <option value="14">Storico 14g</option>
-              <option value="30" selected>Storico 30g</option>
-              <option value="90">Storico 90g</option>
-            </select>
-            <button id="loadMoreBtn" class="bg-blue-600 hover:bg-blue-500 rounded-xl px-4 py-3 font-semibold">Carica altri</button>
+            <button id="showAllBtn" class="bg-emerald-700 hover:bg-emerald-600 rounded-xl px-4 py-3 font-semibold transition">Tutti</button>
+            <button id="showFavBtn" class="bg-amber-600 hover:bg-amber-500 rounded-xl px-4 py-3 font-semibold transition">Preferiti</button>
           </div>
         </div>
 
         <div id="listStatus" class="text-slate-400 text-sm mt-4"></div>
-
         <div id="tokenList" class="mt-4 space-y-2 max-h-[70vh] overflow-y-auto pr-1"></div>
-      </div>
+      </aside>
 
-      <div class="lg:col-span-8 space-y-6">
+      <section class="lg:col-span-8 space-y-6">
         <div id="selectedHeader" class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-          <div class="text-slate-400">Seleziona un token dalla lista per vedere lo storico.</div>
+          <div class="text-slate-400">Seleziona un token dalla lista per vedere tutti i dettagli.</div>
         </div>
 
+        <div id="detailCards" class="space-y-6"></div>
+
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-          <div class="flex items-center justify-between gap-4 mb-4">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
             <h2 class="text-xl font-bold">Storico dati</h2>
             <div id="tableStatus" class="text-slate-400 text-sm"></div>
           </div>
+
           <div class="overflow-auto rounded-xl border border-slate-800">
             <table class="min-w-full text-sm">
-              <thead class="bg-slate-950 text-slate-300">
+              <thead class="bg-slate-950 text-slate-300 sticky top-0">
                 <tr>
                   <th class="text-left px-4 py-3">Data</th>
-                  <th class="text-right px-4 py-3">Cap. di mercato</th>
+                  <th class="text-right px-4 py-3">Market Cap</th>
                   <th class="text-right px-4 py-3">Volume</th>
                   <th class="text-right px-4 py-3">Close</th>
                 </tr>
@@ -94,16 +97,16 @@
             </table>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   </div>
 
   <script>
     const API = 'https://api.coingecko.com/api/v3';
+
     let deferredPrompt = null;
     let allTokens = [];
     let page = 1;
-    let currentSort = 'volume_desc';
     let selectedCoinId = null;
     let showFavoritesOnly = false;
     let favorites = JSON.parse(localStorage.getItem('cg_favorites') || '[]');
@@ -111,6 +114,7 @@
     const tokenListEl = document.getElementById('tokenList');
     const listStatusEl = document.getElementById('listStatus');
     const selectedHeaderEl = document.getElementById('selectedHeader');
+    const detailCardsEl = document.getElementById('detailCards');
     const historyTableBodyEl = document.getElementById('historyTableBody');
     const tableStatusEl = document.getElementById('tableStatus');
     const searchInputEl = document.getElementById('searchInput');
@@ -127,59 +131,22 @@
 
     function setupPWA() {
       const manifest = {
-        name: 'CoinGecko Volume Scanner',
+        name: 'CoinGecko Token Scanner',
         short_name: 'CG Scanner',
         start_url: '.',
         display: 'standalone',
         background_color: '#020617',
         theme_color: '#020617',
-        icons: [
-          {
-            src: 'data:image/svg+xml;base64,' + btoa(`
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-                <rect width="512" height="512" rx="110" fill="#020617"/>
-                <circle cx="170" cy="170" r="64" fill="#10b981"/>
-                <circle cx="342" cy="170" r="64" fill="#f59e0b"/>
-                <rect x="92" y="262" width="328" height="52" rx="26" fill="#2563eb"/>
-                <rect x="92" y="340" width="252" height="52" rx="26" fill="#a855f7"/>
-              </svg>
-            `),
-            sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'any maskable'
-          }
-        ]
+        icons: [{
+          src: 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="110" fill="#020617"/><circle cx="170" cy="170" r="64" fill="#10b981"/><circle cx="342" cy="170" r="64" fill="#f59e0b"/><rect x="92" y="262" width="328" height="52" rx="26" fill="#2563eb"/><rect x="92" y="340" width="252" height="52" rx="26" fill="#a855f7"/></svg>`),
+          sizes: '512x512',
+          type: 'image/svg+xml',
+          purpose: 'any maskable'
+        }]
       };
 
       const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-      const manifestUrl = URL.createObjectURL(manifestBlob);
-      document.getElementById('dynamic-manifest').setAttribute('href', manifestUrl);
-
-      if ('serviceWorker' in navigator) {
-        const swCode = `
-          const CACHE_NAME = 'cg-scanner-v1';
-          const APP_SHELL = ['./'];
-          self.addEventListener('install', event => {
-            event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
-          });
-          self.addEventListener('activate', event => {
-            event.waitUntil(self.clients.claim());
-          });
-          self.addEventListener('fetch', event => {
-            if (event.request.method !== 'GET') return;
-            event.respondWith(
-              fetch(event.request).then(response => {
-                const clone = response.clone();
-                caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone)).catch(() => {});
-                return response;
-              }).catch(() => caches.match(event.request).then(resp => resp || caches.match('./')))
-            );
-          });
-        `;
-        const swBlob = new Blob([swCode], { type: 'text/javascript' });
-        const swUrl = URL.createObjectURL(swBlob);
-        navigator.serviceWorker.register(swUrl).catch(() => {});
-      }
+      document.getElementById('dynamic-manifest').setAttribute('href', URL.createObjectURL(manifestBlob));
 
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
@@ -195,19 +162,61 @@
       });
     }
 
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function shortAddress(address) {
+      if (!address) return 'N/A';
+      if (address.length <= 14) return address;
+      return `${address.slice(0, 6)}...${address.slice(-6)}`;
+    }
+
     function formatCurrency(value) {
-      if (value === null || value === undefined || Number.isNaN(value)) return 'N/A';
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return 'N/A';
       return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0 }).format(value) + ' $';
     }
 
     function formatPrice(value) {
-      if (value === null || value === undefined || Number.isNaN(value)) return 'N/A';
-      return new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 8 }).format(value) + ' $';
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return 'N/A';
+      const abs = Math.abs(Number(value));
+      const maxDigits = abs < 0.01 ? 10 : abs < 1 ? 8 : 4;
+      return new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: maxDigits }).format(value) + ' $';
+    }
+
+    function formatNumber(value) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return 'N/A';
+      return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 3 }).format(value);
     }
 
     function formatCompact(value) {
-      if (value === null || value === undefined || Number.isNaN(value)) return 'N/A';
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return 'N/A';
       return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 2 }).format(value);
+    }
+
+    function formatPercent(value) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return 'N/A';
+      const sign = Number(value) > 0 ? '+' : '';
+      return sign + Number(value).toFixed(2) + '%';
+    }
+
+    function formatDate(value) {
+      if (!value) return 'N/A';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return 'N/A';
+      return d.toLocaleDateString('it-IT', { year: 'numeric', month: 'short', day: '2-digit' });
+    }
+
+    function percentClass(value) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return 'text-slate-400';
+      if (Number(value) > 0) return 'text-emerald-400';
+      if (Number(value) < 0) return 'text-red-400';
+      return 'text-slate-400';
     }
 
     function saveFavorites() {
@@ -219,13 +228,27 @@
     }
 
     function toggleFavorite(id) {
-      if (isFavorite(id)) {
-        favorites = favorites.filter(x => x !== id);
-      } else {
-        favorites.push(id);
-      }
+      favorites = isFavorite(id) ? favorites.filter(x => x !== id) : [...favorites, id];
       saveFavorites();
       renderTokenList();
+    }
+
+    async function fetchJsonWithRetry(url, options = {}) {
+      const { retries = 1, retryDelay = 1200 } = options;
+      let lastError = null;
+
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+          const response = await fetch(url);
+          if (response.status === 429) throw new Error('RATE_LIMIT');
+          if (!response.ok) throw new Error(`HTTP_${response.status}`);
+          return await response.json();
+        } catch (error) {
+          lastError = error;
+          if (attempt < retries) await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+      }
+      throw lastError;
     }
 
     function renderTokenList() {
@@ -234,57 +257,63 @@
       const maxMcap = maxMcapEl.value ? Number(maxMcapEl.value) : null;
 
       const filtered = allTokens.filter(token => {
-        const matchesSearch = token.name.toLowerCase().includes(term) || token.symbol.toLowerCase().includes(term) || token.id.toLowerCase().includes(term);
+        const matchesSearch = [token.name, token.symbol, token.id].some(v => String(v || '').toLowerCase().includes(term));
         const tokenMcap = token.market_cap ?? 0;
-        const matchesMin = minMcap === null || tokenMcap >= minMcap;
-        const matchesMax = maxMcap === null || tokenMcap <= maxMcap;
-        const matchesFav = !showFavoritesOnly || isFavorite(token.id);
-        return matchesSearch && matchesMin && matchesMax && matchesFav;
+        return matchesSearch &&
+          (minMcap === null || tokenMcap >= minMcap) &&
+          (maxMcap === null || tokenMcap <= maxMcap) &&
+          (!showFavoritesOnly || isFavorite(token.id));
       });
 
+      if (!filtered.length) {
+        tokenListEl.innerHTML = '<div class="text-slate-500 text-sm bg-slate-950 border border-slate-800 rounded-xl p-4">Nessun token trovato con questi filtri.</div>';
+        listStatusEl.textContent = '0 token visibili';
+        return;
+      }
+
       tokenListEl.innerHTML = filtered.map(token => {
-        const activeClass = selectedCoinId === token.id ? 'border-emerald-500 bg-slate-800' : 'border-slate-800 bg-slate-950';
+        const activeClass = selectedCoinId === token.id ? 'border-emerald-500 bg-slate-800' : 'border-slate-800 bg-slate-950 hover:bg-slate-900';
         const fav = isFavorite(token.id);
         return `
           <div class="border ${activeClass} rounded-xl p-3 transition">
             <div class="flex items-start justify-between gap-3">
-              <button data-coin-id="${token.id}" class="token-btn flex-1 text-left">
+              <button data-coin-id="${escapeHtml(token.id)}" class="token-btn flex-1 text-left">
                 <div class="flex items-start justify-between gap-3">
                   <div>
-                    <div class="font-semibold">${token.name} <span class="text-slate-400 uppercase">${token.symbol}</span></div>
-                    <div class="text-xs text-slate-500 mt-1">${token.id}</div>
+                    <div class="font-semibold">${escapeHtml(token.name)} <span class="text-slate-400 uppercase">${escapeHtml(token.symbol)}</span></div>
+                    <div class="text-xs text-slate-500 mt-1">${escapeHtml(token.id)}</div>
                   </div>
-                  ${token.image ? `<img src="${token.image}" alt="${token.name}" class="w-8 h-8 rounded-full" />` : ''}
+                  ${token.image ? `<img src="${escapeHtml(token.image)}" alt="${escapeHtml(token.name)}" class="w-8 h-8 rounded-full" loading="lazy" />` : ''}
                 </div>
                 <div class="grid grid-cols-2 gap-2 mt-3 text-sm">
                   <div class="text-slate-400">Vol 24h <span class="text-white font-medium">${formatCompact(token.total_volume)}</span></div>
                   <div class="text-slate-400">MCap <span class="text-white font-medium">${formatCompact(token.market_cap)}</span></div>
+                  <div class="text-slate-400">24h <span class="${percentClass(token.price_change_percentage_24h)} font-medium">${formatPercent(token.price_change_percentage_24h)}</span></div>
+                  <div class="text-slate-400">7d <span class="${percentClass(token.price_change_percentage_7d_in_currency)} font-medium">${formatPercent(token.price_change_percentage_7d_in_currency)}</span></div>
+                  <div class="text-slate-400">30d <span class="${percentClass(token.price_change_percentage_30d_in_currency)} font-medium">${formatPercent(token.price_change_percentage_30d_in_currency)}</span></div>
+                  <div class="text-slate-400">Rank <span class="text-white font-medium">#${token.market_cap_rank ?? 'N/A'}</span></div>
                 </div>
               </button>
-              <button data-fav-id="${token.id}" class="fav-btn text-2xl leading-none px-2 ${fav ? 'text-amber-400' : 'text-slate-500'}" title="Preferito">${fav ? '★' : '☆'}</button>
+              <button data-fav-id="${escapeHtml(token.id)}" class="fav-btn text-2xl leading-none px-2 ${fav ? 'text-amber-400' : 'text-slate-500'}" title="Preferito">${fav ? '★' : '☆'}</button>
             </div>
           </div>
         `;
       }).join('');
 
       document.querySelectorAll('.token-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const coinId = btn.getAttribute('data-coin-id');
-          loadCoinHistory(coinId);
-        });
+        btn.addEventListener('click', () => loadCoinHistory(btn.getAttribute('data-coin-id')));
       });
 
       document.querySelectorAll('.fav-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          const coinId = btn.getAttribute('data-fav-id');
-          toggleFavorite(coinId);
+          toggleFavorite(btn.getAttribute('data-fav-id'));
         });
       });
 
-      listStatusEl.textContent = `${filtered.length} token visibili`;
-      showAllBtnEl.className = showFavoritesOnly ? 'bg-slate-800 hover:bg-slate-700 rounded-xl px-4 py-3 font-semibold' : 'bg-emerald-700 hover:bg-emerald-600 rounded-xl px-4 py-3 font-semibold';
-      showFavBtnEl.className = showFavoritesOnly ? 'bg-amber-500 hover:bg-amber-400 rounded-xl px-4 py-3 font-semibold' : 'bg-amber-600 hover:bg-amber-500 rounded-xl px-4 py-3 font-semibold';
+      listStatusEl.textContent = `${filtered.length} token visibili · ${allTokens.length} caricati`;
+      showAllBtnEl.className = showFavoritesOnly ? 'bg-slate-800 hover:bg-slate-700 rounded-xl px-4 py-3 font-semibold transition' : 'bg-emerald-700 hover:bg-emerald-600 rounded-xl px-4 py-3 font-semibold transition';
+      showFavBtnEl.className = showFavoritesOnly ? 'bg-amber-500 hover:bg-amber-400 rounded-xl px-4 py-3 font-semibold transition' : 'bg-amber-600 hover:bg-amber-500 rounded-xl px-4 py-3 font-semibold transition';
     }
 
     async function fetchMarkets(reset = false) {
@@ -296,48 +325,141 @@
           tokenListEl.innerHTML = '';
         }
 
-        currentSort = sortByEl.value;
-        const url = `${API}/coins/markets?vs_currency=usd&order=${currentSort}&per_page=100&page=${page}&sparkline=false`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Errore richiesta lista token');
-        const data = await response.json();
-
+        const order = sortByEl.value;
+        const url = `${API}/coins/markets?vs_currency=usd&order=${order}&per_page=100&page=${page}&sparkline=false&price_change_percentage=24h,7d,30d`;
+        const data = await fetchJsonWithRetry(url, { retries: 1, retryDelay: 1200 });
         const existingIds = new Set(allTokens.map(t => t.id));
-        const unique = data.filter(t => !existingIds.has(t.id));
-        allTokens = [...allTokens, ...unique];
+        allTokens = [...allTokens, ...data.filter(t => !existingIds.has(t.id))];
         renderTokenList();
-        listStatusEl.textContent = `Lista aggiornata. Pagina ${page} caricata`;
+        listStatusEl.textContent = `Lista aggiornata · pagina ${page} caricata · ${allTokens.length} token totali`;
       } catch (error) {
-        listStatusEl.textContent = 'Errore nel caricamento lista';
+        listStatusEl.textContent = error?.message === 'RATE_LIMIT' ? 'Rate limit CoinGecko. Attendi qualche secondo e riprova.' : 'Errore nel caricamento lista.';
       }
     }
 
-    async function fetchJsonWithRetry(url, options = {}) {
-      const { retries = 1, retryDelay = 1200 } = options;
-      let lastError = null;
+    function statItem(label, value, extra = '') {
+      return `
+        <div>
+          <div class="text-slate-400 text-sm">${label}</div>
+          <div class="text-white text-lg font-semibold mt-1">${value}</div>
+          ${extra ? `<div class="text-slate-500 text-xs mt-1">${extra}</div>` : ''}
+        </div>
+      `;
+    }
 
-      for (let attempt = 0; attempt <= retries; attempt++) {
-        try {
-          const response = await fetch(url);
+    function renderLinks(full) {
+      const links = full.links || {};
+      const homepage = Array.isArray(links.homepage) ? links.homepage.find(Boolean) : null;
+      const twitter = links.twitter_screen_name ? `https://x.com/${links.twitter_screen_name}` : null;
+      const telegram = links.telegram_channel_identifier ? `https://t.me/${links.telegram_channel_identifier}` : null;
+      const discord = Array.isArray(links.chat_url) ? links.chat_url.find(url => String(url).includes('discord')) : null;
+      const github = Array.isArray(links.repos_url?.github) ? links.repos_url.github.find(Boolean) : null;
+      const explorers = Array.isArray(links.blockchain_site) ? links.blockchain_site.filter(Boolean).slice(0, 4) : [];
+      const coingecko = `https://www.coingecko.com/en/coins/${full.id}`;
 
-          if (response.status === 429) {
-            throw new Error('RATE_LIMIT');
+      const items = [
+        ['Website', homepage],
+        ['X / Twitter', twitter],
+        ['Telegram', telegram],
+        ['Discord', discord],
+        ['GitHub', github],
+        ['CoinGecko', coingecko],
+        ...explorers.map((url, i) => [`Explorer ${i + 1}`, url])
+      ].filter(([, url]) => !!url);
+
+      if (!items.length) return '<div class="text-slate-500">Nessun link disponibile.</div>';
+
+      return items.map(([label, url]) => `
+        <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between gap-3 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 hover:border-emerald-500 transition">
+          <span class="text-slate-300">${escapeHtml(label)}</span>
+          <span class="text-emerald-400 text-sm truncate max-w-[70%]">${escapeHtml(url)}</span>
+        </a>
+      `).join('');
+    }
+
+    function renderContracts(full) {
+      const platforms = full.platforms || {};
+      const chainNames = {
+        ethereum: 'Ethereum',
+        'base': 'Base',
+        'binance-smart-chain': 'Binance Smart Chain',
+        'mantle': 'Mantle',
+        polygon: 'Polygon',
+        arbitrum: 'Arbitrum',
+        optimism: 'Optimism',
+        avalanche: 'Avalanche',
+        solana: 'Solana'
+      };
+
+      const rows = Object.entries(platforms)
+        .filter(([, address]) => address)
+        .map(([chain, address]) => `
+          <div class="flex items-center justify-between gap-3 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3">
+            <div class="font-medium">${escapeHtml(chainNames[chain] || chain)}</div>
+            <button class="copy-btn text-slate-300 hover:text-white text-sm" data-copy="${escapeHtml(address)}" title="Copia contract">
+              ${escapeHtml(shortAddress(address))} 📋
+            </button>
+          </div>
+        `).join('');
+
+      return rows || '<div class="text-slate-500">Nessun contract address disponibile.</div>';
+    }
+
+    function renderFullDetails(full, marketCoin) {
+      const md = full.market_data || {};
+      const community = full.community_data || {};
+      const mcap = md.market_cap?.usd ?? marketCoin.market_cap;
+      const fdv = md.fully_diluted_valuation?.usd ?? marketCoin.fully_diluted_valuation;
+      const ratio = mcap && fdv ? (mcap / fdv).toFixed(2) : 'N/A';
+
+      detailCardsEl.innerHTML = `
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h2 class="text-xl font-bold mb-5">Statistics</h2>
+          <div class="grid md:grid-cols-2 gap-x-10 gap-y-7">
+            ${statItem('Market Cap', formatCurrency(mcap))}
+            ${statItem('Circulating Supply', formatNumber(md.circulating_supply))}
+            ${statItem('Fully Diluted Valuation', formatCurrency(fdv))}
+            ${statItem('Total Supply', formatNumber(md.total_supply))}
+            ${statItem('Market Cap / FDV Ratio', ratio)}
+            ${statItem('Max Supply', formatNumber(md.max_supply))}
+            ${statItem('Trading Volume 24h', formatCurrency(md.total_volume?.usd ?? marketCoin.total_volume))}
+            ${statItem('Added to Watchlist', formatNumber(community.watchlist_portfolio_users))}
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h2 class="text-xl font-bold mb-5">Historical Data</h2>
+          <div class="grid md:grid-cols-2 gap-x-10 gap-y-7">
+            ${statItem('24H High', formatPrice(md.high_24h?.usd))}
+            ${statItem('24H Low', formatPrice(md.low_24h?.usd))}
+            ${statItem('All Time High', `<span>${formatPrice(md.ath?.usd)}</span> <span class="${percentClass(md.ath_change_percentage?.usd)} text-base">${formatPercent(md.ath_change_percentage?.usd)}</span>`, formatDate(md.ath_date?.usd))}
+            ${statItem('All Time Low', `<span>${formatPrice(md.atl?.usd)}</span> <span class="${percentClass(md.atl_change_percentage?.usd)} text-base">${formatPercent(md.atl_change_percentage?.usd)}</span>`, formatDate(md.atl_date?.usd))}
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h2 class="text-xl font-bold mb-5">Contract Address</h2>
+          <div class="space-y-3">${renderContracts(full)}</div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h2 class="text-xl font-bold mb-5">Links</h2>
+          <div class="space-y-3">${renderLinks(full)}</div>
+        </div>
+      `;
+
+      document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(btn.getAttribute('data-copy'));
+            const old = btn.textContent;
+            btn.textContent = 'Copiato ✅';
+            setTimeout(() => { btn.textContent = old; }, 1200);
+          } catch {
+            alert('Impossibile copiare automaticamente.');
           }
-
-          if (!response.ok) {
-            throw new Error(`HTTP_${response.status}`);
-          }
-
-          return await response.json();
-        } catch (error) {
-          lastError = error;
-          if (attempt < retries) {
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
-          }
-        }
-      }
-
-      throw lastError;
+        });
+      });
     }
 
     function getHistoryCacheKey(coinId, days) {
@@ -345,61 +467,46 @@
     }
 
     function saveHistoryToCache(coinId, days, data) {
-      const payload = {
-        savedAt: Date.now(),
-        data
-      };
-      localStorage.setItem(getHistoryCacheKey(coinId, days), JSON.stringify(payload));
+      try { localStorage.setItem(getHistoryCacheKey(coinId, days), JSON.stringify({ savedAt: Date.now(), data })); } catch {}
     }
 
     function loadHistoryFromCache(coinId, days, maxAgeMs = 1000 * 60 * 30) {
       try {
-        const raw = localStorage.getItem(getHistoryCacheKey(coinId, days));
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
+        const parsed = JSON.parse(localStorage.getItem(getHistoryCacheKey(coinId, days)) || 'null');
         if (!parsed?.savedAt || !parsed?.data) return null;
         if (Date.now() - parsed.savedAt > maxAgeMs) return null;
         return parsed.data;
-      } catch {
-        return null;
-      }
+      } catch { return null; }
     }
 
     function buildDailyRowsFromChartData(chartData) {
       const prices = Array.isArray(chartData?.prices) ? chartData.prices : [];
       const marketCaps = Array.isArray(chartData?.market_caps) ? chartData.market_caps : [];
       const volumes = Array.isArray(chartData?.total_volumes) ? chartData.total_volumes : [];
-
-      if (!prices.length) {
-        return [];
-      }
-
-      const rows = prices.map((pricePoint, index) => {
-        const timestamp = pricePoint[0];
-        const close = pricePoint[1];
-        const mcap = marketCaps[index] ? marketCaps[index][1] : null;
-        const vol = volumes[index] ? volumes[index][1] : null;
-        return { timestamp, close, marketCap: mcap, volume: vol };
-      });
+      if (!prices.length) return [];
 
       const dailyMap = new Map();
-      rows.forEach(row => {
-        const date = new Date(row.timestamp).toISOString().slice(0, 10);
-        dailyMap.set(date, row);
+      prices.forEach((pricePoint, index) => {
+        const timestamp = pricePoint[0];
+        const date = new Date(timestamp).toISOString().slice(0, 10);
+        dailyMap.set(date, {
+          timestamp,
+          close: pricePoint[1],
+          marketCap: marketCaps[index] ? marketCaps[index][1] : null,
+          volume: volumes[index] ? volumes[index][1] : null
+        });
       });
 
-      return Array.from(dailyMap.entries())
-        .map(([date, values]) => ({ date, ...values }))
-        .sort((a, b) => b.timestamp - a.timestamp);
+      return Array.from(dailyMap.entries()).map(([date, values]) => ({ date, ...values })).sort((a, b) => b.timestamp - a.timestamp);
     }
 
     function renderHistoryRows(dailyRows) {
       historyTableBodyEl.innerHTML = dailyRows.map((row, idx) => `
         <tr class="${idx % 2 === 0 ? 'bg-slate-900' : 'bg-slate-950'} border-t border-slate-800">
-          <td class="px-4 py-3">${row.date}</td>
-          <td class="px-4 py-3 text-right">${formatCurrency(row.marketCap)}</td>
-          <td class="px-4 py-3 text-right">${formatCurrency(row.volume)}</td>
-          <td class="px-4 py-3 text-right">${formatPrice(row.close)}</td>
+          <td class="px-4 py-3 whitespace-nowrap">${escapeHtml(row.date)}</td>
+          <td class="px-4 py-3 text-right whitespace-nowrap">${formatCurrency(row.marketCap)}</td>
+          <td class="px-4 py-3 text-right whitespace-nowrap">${formatCurrency(row.volume)}</td>
+          <td class="px-4 py-3 text-right whitespace-nowrap">${formatPrice(row.close)}</td>
         </tr>
       `).join('');
     }
@@ -409,50 +516,42 @@
       renderTokenList();
       tableStatusEl.textContent = 'Caricamento storico...';
       historyTableBodyEl.innerHTML = '';
+      detailCardsEl.innerHTML = '<div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-slate-400">Caricamento dettagli token...</div>';
 
       try {
         const days = daysSelectEl.value;
-        const marketData = await fetchJsonWithRetry(`${API}/coins/markets?vs_currency=usd&ids=${coinId}`, { retries: 1, retryDelay: 900 });
+        const marketData = await fetchJsonWithRetry(`${API}/coins/markets?vs_currency=usd&ids=${encodeURIComponent(coinId)}&price_change_percentage=24h,7d,30d`, { retries: 1, retryDelay: 900 });
         if (!marketData.length) throw new Error('TOKEN_NOT_FOUND');
         const coin = marketData[0];
 
         selectedHeaderEl.innerHTML = `
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <div class="flex items-center gap-3">
-                ${coin.image ? `<img src="${coin.image}" alt="${coin.name}" class="w-12 h-12 rounded-full" />` : ''}
-                <div>
-                  <h2 class="text-2xl font-bold">${coin.name} <span class="text-slate-400 uppercase">${coin.symbol}</span></h2>
-                  <div class="text-slate-500 text-sm">ID CoinGecko: ${coin.id}</div>
-                </div>
+          <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div class="flex items-center gap-3">
+              ${coin.image ? `<img src="${escapeHtml(coin.image)}" alt="${escapeHtml(coin.name)}" class="w-12 h-12 rounded-full" />` : ''}
+              <div>
+                <h2 class="text-2xl font-bold">${escapeHtml(coin.name)} <span class="text-slate-400 uppercase">${escapeHtml(coin.symbol)}</span></h2>
+                <div class="text-slate-500 text-sm">ID CoinGecko: ${escapeHtml(coin.id)} · Rank #${coin.market_cap_rank ?? 'N/A'}</div>
               </div>
             </div>
-            <div class="text-right">
+            <div class="md:text-right">
               <div class="text-slate-400 text-sm">Prezzo attuale</div>
               <div class="text-2xl font-bold">${formatPrice(coin.current_price)}</div>
-            </div>
-          </div>
-          <div class="grid md:grid-cols-3 gap-4 mt-5">
-            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
-              <div class="text-slate-400 text-sm">Market Cap</div>
-              <div class="text-lg font-semibold mt-1">${formatCurrency(coin.market_cap)}</div>
-            </div>
-            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
-              <div class="text-slate-400 text-sm">Volume 24h</div>
-              <div class="text-lg font-semibold mt-1">${formatCurrency(coin.total_volume)}</div>
-            </div>
-            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
-              <div class="text-slate-400 text-sm">Rank</div>
-              <div class="text-lg font-semibold mt-1">#${coin.market_cap_rank ?? 'N/A'}</div>
+              <div class="text-sm ${percentClass(coin.price_change_percentage_24h)}">24h ${formatPercent(coin.price_change_percentage_24h)}</div>
             </div>
           </div>
         `;
 
+        try {
+          const full = await fetchJsonWithRetry(`${API}/coins/${encodeURIComponent(coinId)}?localization=false&tickers=false&market_data=true&community_data=true&developer_data=false&sparkline=false`, { retries: 1, retryDelay: 1200 });
+          renderFullDetails(full, coin);
+        } catch (error) {
+          detailCardsEl.innerHTML = '<div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-slate-400">Dettagli avanzati non disponibili. Probabile rate limit CoinGecko.</div>';
+        }
+
         let chartData = null;
         let loadedFromCache = false;
-
         try {
-          chartData = await fetchJsonWithRetry(`${API}/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`, { retries: 1, retryDelay: 1500 });
+          chartData = await fetchJsonWithRetry(`${API}/coins/${encodeURIComponent(coinId)}/market_chart?vs_currency=usd&days=${days}`, { retries: 1, retryDelay: 1500 });
           saveHistoryToCache(coinId, days, chartData);
         } catch (error) {
           const cached = loadHistoryFromCache(coinId, days);
@@ -465,35 +564,22 @@
         }
 
         const dailyRows = buildDailyRowsFromChartData(chartData);
-
-        if (!dailyRows.length) {
-          throw new Error('NO_HISTORY');
-        }
-
+        if (!dailyRows.length) throw new Error('NO_HISTORY');
         renderHistoryRows(dailyRows);
-        tableStatusEl.textContent = loadedFromCache
-          ? `${dailyRows.length} righe storiche · cache locale`
-          : `${dailyRows.length} righe storiche`;
+        tableStatusEl.textContent = loadedFromCache ? `${dailyRows.length} righe storiche · cache locale` : `${dailyRows.length} righe storiche`;
       } catch (error) {
         let message = 'Impossibile caricare lo storico per questa coin.';
-
-        if (error?.message === 'RATE_LIMIT') {
-          message = 'CoinGecko ha limitato temporaneamente le richieste. Attendi qualche secondo e riprova.';
-        } else if (error?.message === 'NO_HISTORY') {
-          message = 'Storico non disponibile o dati troppo recenti per questa coin.';
-        } else if (error?.message === 'TOKEN_NOT_FOUND') {
-          message = 'Token non trovato su CoinGecko.';
-        } else if (typeof error?.message === 'string' && error.message.startsWith('HTTP_')) {
-          message = `Errore API ${error.message.replace('HTTP_', '')}. Riprova tra poco.`;
-        }
-
+        if (error?.message === 'RATE_LIMIT') message = 'CoinGecko ha limitato temporaneamente le richieste. Attendi qualche secondo e riprova.';
+        if (error?.message === 'NO_HISTORY') message = 'Storico non disponibile o dati troppo recenti per questa coin.';
+        if (error?.message === 'TOKEN_NOT_FOUND') message = 'Token non trovato su CoinGecko.';
         tableStatusEl.textContent = 'Storico non disponibile';
-        historyTableBodyEl.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-slate-400">${message}</td></tr>`;
+        historyTableBodyEl.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-slate-400">${escapeHtml(message)}</td></tr>`;
       }
     }
 
-    refreshBtnEl.addEventListener('click', async () => {
-      await installBtnEl.addEventListener('click', async () => {
+    refreshBtnEl.addEventListener('click', async () => fetchMarkets(true));
+
+    installBtnEl.addEventListener('click', async () => {
       if (!deferredPrompt) {
         installStatusEl.textContent = 'Apri il menu del browser e usa “Aggiungi a schermata Home” se il pulsante di installazione non compare.';
         return;
@@ -501,16 +587,8 @@
       deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
       deferredPrompt = null;
-      if (choice.outcome === 'accepted') {
-        installStatusEl.textContent = 'Installazione avviata.';
-      } else {
-        installStatusEl.textContent = 'Installazione annullata.';
-      }
+      installStatusEl.textContent = choice.outcome === 'accepted' ? 'Installazione avviata.' : 'Installazione annullata.';
       installBtnEl.classList.add('hidden');
-    });
-
-    setupPWA();
-    fetchMarkets(true);
     });
 
     loadMoreBtnEl.addEventListener('click', async () => {
@@ -521,25 +599,24 @@
     searchInputEl.addEventListener('input', renderTokenList);
     minMcapEl.addEventListener('input', renderTokenList);
     maxMcapEl.addEventListener('input', renderTokenList);
+
     showAllBtnEl.addEventListener('click', () => {
       showFavoritesOnly = false;
       renderTokenList();
     });
+
     showFavBtnEl.addEventListener('click', () => {
       showFavoritesOnly = true;
       renderTokenList();
     });
 
-    sortByEl.addEventListener('change', async () => {
-      await fetchMarkets(true);
-    });
+    sortByEl.addEventListener('change', async () => fetchMarkets(true));
 
     daysSelectEl.addEventListener('change', async () => {
-      if (selectedCoinId) {
-        await loadCoinHistory(selectedCoinId);
-      }
+      if (selectedCoinId) await loadCoinHistory(selectedCoinId);
     });
 
+    setupPWA();
     fetchMarkets(true);
   </script>
 </body>
