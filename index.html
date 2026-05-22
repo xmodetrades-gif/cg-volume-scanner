@@ -25,6 +25,7 @@
         <button id="installBtn" class="hidden bg-fuchsia-600 hover:bg-fuchsia-500 rounded-xl px-4 py-3 font-semibold transition">Installa app</button>
       </div>
       <div id="installStatus" class="text-slate-500 text-sm mt-3"></div>
+      <div id="lastUpdated" class="text-slate-500 text-sm mt-2">Last updated: -</div>
     </header>
 
     <main class="grid lg:grid-cols-12 gap-6">
@@ -39,7 +40,7 @@
               <option value="volume_asc">Volume asc</option>
               <option value="market_cap_asc">Market cap asc</option>
             </select>
-            <button id="refreshBtn" class="bg-emerald-600 hover:bg-emerald-500 rounded-xl px-4 py-3 font-semibold transition">Aggiorna lista</button>
+            <button id="refreshBtn" class="bg-emerald-600 hover:bg-emerald-500 rounded-xl px-4 py-3 font-semibold transition">Force refresh</button>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
@@ -96,9 +97,11 @@
   <script>
     const API = 'https://api.coingecko.com/api/v3';
     const MARKET_CACHE_KEY = 'cg_markets_cache_v4';
-    const MARKET_CACHE_MAX_AGE = 1000 * 60 * 10;
-    const DETAIL_CACHE_MAX_AGE = 1000 * 60 * 30;
+    const MARKET_CACHE_MAX_AGE = 1000 * 60 * 2;
+    const DETAIL_CACHE_MAX_AGE = 1000 * 60 * 10;
+    const HISTORY_CACHE_MAX_AGE = 1000 * 60 * 10;
     const INITIAL_RENDER_LIMIT = 80;
+    const APP_VERSION = '2026-05-22-live-refresh-v2';
 
     let deferredPrompt = null;
     let allTokens = [];
@@ -133,6 +136,7 @@
     const showMoreLocalBtnEl = document.getElementById('showMoreLocalBtn');
     const smartLowCapBtnEl = document.getElementById('smartLowCapBtn');
     const smartVolumeBtnEl = document.getElementById('smartVolumeBtn');
+    const lastUpdatedEl = document.getElementById('lastUpdated');
 
     function setupPWA() {
       const manifest = {
@@ -209,6 +213,49 @@
       if (Number(value) > 0) return 'text-emerald-400';
       if (Number(value) < 0) return 'text-red-400';
       return 'text-slate-400';
+    }
+
+
+
+    function updateLastUpdated(source = 'API', timestamp = Date.now()) {
+      if (!lastUpdatedEl) return;
+      const label = source === 'cache' ? 'Cache locale' : source === 'history-cache' ? 'History cache' : 'Live API';
+      lastUpdatedEl.textContent = `Last updated: ${new Date(timestamp).toLocaleString('it-IT')} · ${label} · ${APP_VERSION}`;
+    }
+
+    function clearAllCache() {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('cg_')) localStorage.removeItem(key);
+      });
+      listStatusEl.textContent = 'Cache pulita. Carico dati freschi da CoinGecko...';
+    }
+
+    function volumeSignalBadge(spikeRatio) {
+      if (spikeRatio === null || spikeRatio === undefined || Number.isNaN(Number(spikeRatio))) {
+        return '<span class="inline-flex items-center border border-slate-700 bg-slate-800 text-slate-300 rounded-full px-3 py-1 text-sm font-bold">Volume N/A</span>';
+      }
+      if (spikeRatio >= 3) return '<span class="inline-flex items-center border border-emerald-500/40 bg-emerald-500/15 text-emerald-300 rounded-full px-3 py-1 text-sm font-bold">Volume Spike Strong</span>';
+      if (spikeRatio >= 1.5) return '<span class="inline-flex items-center border border-amber-500/40 bg-amber-500/15 text-amber-300 rounded-full px-3 py-1 text-sm font-bold">Volume Spike</span>';
+      return '<span class="inline-flex items-center border border-slate-700 bg-slate-800 text-slate-300 rounded-full px-3 py-1 text-sm font-bold">Volume Normal</span>';
+    }
+
+    function average(values) {
+      const clean = values.map(Number).filter(v => Number.isFinite(v) && v > 0);
+      if (!clean.length) return null;
+      return clean.reduce((a, b) => a + b, 0) / clean.length;
+    }
+
+    function calculateVolumeStats(rows) {
+      if (!Array.isArray(rows) || rows.length < 2) return null;
+      const sorted = [...rows].sort((a, b) => b.timestamp - a.timestamp);
+      const latest = Number(sorted[0]?.volume || 0);
+      const previous = Number(sorted[1]?.volume || 0);
+      const prev7Avg = average(sorted.slice(1, 8).map(r => r.volume));
+      const prev30Avg = average(sorted.slice(1, 31).map(r => r.volume));
+      const change24 = previous ? ((latest - previous) / previous) * 100 : null;
+      const spike7 = prev7Avg ? latest / prev7Avg : null;
+      const spike30 = prev30Avg ? latest / prev30Avg : null;
+      return { latest, previous, prev7Avg, prev30Avg, change24, spike7, spike30 };
     }
 
     function card(title, body) {
@@ -304,6 +351,7 @@
         renderTokenList();
         const ageMin = Math.round((Date.now() - parsed.savedAt) / 60000);
         listStatusEl.textContent = `Cache locale caricata · ${allTokens.length} token · ${ageMin} min fa. Aggiorno in background...`;
+        updateLastUpdated('cache', parsed.savedAt);
         return Date.now() - parsed.savedAt < MARKET_CACHE_MAX_AGE;
       } catch { return false; }
     }
@@ -433,9 +481,10 @@
         allTokens = [...allTokens, ...data.filter(t => !existingIds.has(t.id))];
         saveMarketsCache();
         renderTokenList();
-        listStatusEl.textContent = `Lista aggiornata · pagina ${page} caricata · ${allTokens.length} token totali`;
+        updateLastUpdated('api');
+        listStatusEl.textContent = `Lista aggiornata LIVE · pagina ${page} caricata · ${allTokens.length} token totali`;
       } catch (error) {
-        listStatusEl.textContent = error?.message === 'RATE_LIMIT' ? 'Rate limit CoinGecko. Uso cache locale se disponibile.' : 'Errore nel caricamento lista.';
+        listStatusEl.textContent = error?.message === 'RATE_LIMIT' ? 'Rate limit CoinGecko 429. Aspetta qualche minuto oppure usa backend proxy per dati più stabili.' : `Errore caricamento lista: ${error?.message || 'sconosciuto'}`;
       }
     }
 
@@ -552,8 +601,18 @@
         if (cached) { chartData = cached; loadedFromCache = true; } else { throw new Error('NO_HISTORY'); }
       }
       const rows = buildDailyRowsFromChartData(chartData);
+      const volStats = calculateVolumeStats(rows);
+      if (loadedFromCache) updateLastUpdated('history-cache'); else updateLastUpdated('api');
+      const volumeSummary = volStats ? `
+        <div class="grid md:grid-cols-4 gap-4 mb-5">
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">${statItem('Latest Volume', formatCurrency(volStats.latest))}</div>
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">${statItem('Volume Change 24h', `<span class="${percentClass(volStats.change24)}">${formatPercent(volStats.change24)}</span>`)}</div>
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">${statItem('Vs Avg 7d', volStats.spike7 ? `${volStats.spike7.toFixed(2)}x` : 'N/A')}</div>
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">${statItem('Vs Avg 30d', volStats.spike30 ? `${volStats.spike30.toFixed(2)}x` : 'N/A', volumeSignalBadge(volStats.spike30))}</div>
+        </div>` : '';
       box.innerHTML = `
-        <div class="flex justify-between items-center mb-3"><div class="text-slate-400 text-sm">${rows.length} righe ${loadedFromCache ? '· cache locale' : ''}</div></div>
+        ${volumeSummary}
+        <div class="flex justify-between items-center mb-3"><div class="text-slate-400 text-sm">${rows.length} righe ${loadedFromCache ? '· cache locale' : '· live API'} · storico ${days}g</div></div>
         <div class="overflow-auto rounded-xl border border-slate-800">
           <table class="min-w-full text-sm">
             <thead class="bg-slate-950 text-slate-300 sticky top-0"><tr><th class="text-left px-4 py-3">Data</th><th class="text-right px-4 py-3">Market Cap</th><th class="text-right px-4 py-3">Volume</th><th class="text-right px-4 py-3">Close</th></tr></thead>
@@ -604,7 +663,7 @@
 
     function getHistoryCacheKey(coinId, days) { return `cg_history_${coinId}_${days}`; }
     function saveHistoryToCache(coinId, days, data) { try { localStorage.setItem(getHistoryCacheKey(coinId, days), JSON.stringify({ savedAt: Date.now(), data })); } catch {} }
-    function loadHistoryFromCache(coinId, days, maxAgeMs = 1000 * 60 * 30) { try { const parsed = JSON.parse(localStorage.getItem(getHistoryCacheKey(coinId, days)) || 'null'); if (!parsed?.savedAt || !parsed?.data) return null; if (Date.now() - parsed.savedAt > maxAgeMs) return null; return parsed.data; } catch { return null; } }
+    function loadHistoryFromCache(coinId, days, maxAgeMs = HISTORY_CACHE_MAX_AGE) { try { const parsed = JSON.parse(localStorage.getItem(getHistoryCacheKey(coinId, days)) || 'null'); if (!parsed?.savedAt || !parsed?.data) return null; if (Date.now() - parsed.savedAt > maxAgeMs) return null; return parsed.data; } catch { return null; } }
 
     function buildDailyRowsFromChartData(chartData) {
       const prices = Array.isArray(chartData?.prices) ? chartData.prices : [];
@@ -619,7 +678,7 @@
       return Array.from(dailyMap.entries()).map(([date, values]) => ({ date, ...values })).sort((a, b) => b.timestamp - a.timestamp);
     }
 
-    refreshBtnEl.addEventListener('click', async () => fetchMarkets(true));
+    refreshBtnEl.addEventListener('click', async () => { clearAllCache(); await fetchMarkets(true); });
     loadMoreBtnEl.addEventListener('click', async () => { page += 1; await fetchMarkets(false); });
     showMoreLocalBtnEl.addEventListener('click', () => { visibleLimit += 80; renderTokenList(); });
 
